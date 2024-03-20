@@ -7,6 +7,15 @@ on:
     types: [ labeled ]
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+    inputs:
+      image_type:
+        description: 'Image type'
+        required: true
+        default: 'x86'
+        type: choice
+        options:
+          - x86
+          - ARM
 
 jobs:
   start-runner:
@@ -24,13 +33,26 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::783680406432:role/GithubActionsTestingRole-test-us-east-1
           aws-region: us-east-1
-      - name: Configure EC2 Runner Parameters
+      - if: github.event.inputs.image_type == 'x86'
+        name: Configure EC2 Runner Parameters x86
         run: |
           AWS_REGION=us-east-1
           VPC_ID=$(aws ec2 describe-vpcs --filters 'Name=tag-key,Values=GithubActionsTesting' --query 'Vpcs[0].VpcId' --output text)
           SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" "Name=tag-key,Values=GithubActionsTesting"  --query 'Subnets[0].SubnetId' --output text)
           SG_ID=$(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$VPC_ID" "Name=tag-key,Values=GithubActionsTesting" --query 'SecurityGroups[0].GroupId' --output text)
           AMI=$(aws ssm get-parameter --name /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64 --query 'Parameter.Value' --output text)
+          echo AWS_REGION=$AWS_REGION >> $GITHUB_ENV
+          echo SUBNET_ID=$SUBNET_ID >> $GITHUB_ENV
+          echo SG_ID=$SG_ID >> $GITHUB_ENV
+          echo AMI=$AMI >> $GITHUB_ENV
+      - if: github.event.inputs.image_type == 'ARM'
+        name: Configure EC2 Runner Parameters ARM
+        run: |
+          AWS_REGION=us-east-1
+          VPC_ID=$(aws ec2 describe-vpcs --filters 'Name=tag-key,Values=GithubActionsTesting' --query 'Vpcs[0].VpcId' --output text)
+          SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" "Name=tag-key,Values=GithubActionsTesting"  --query 'Subnets[0].SubnetId' --output text)
+          SG_ID=$(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$VPC_ID" "Name=tag-key,Values=GithubActionsTesting" --query 'SecurityGroups[0].GroupId' --output text)
+          AMI=$(aws ssm get-parameter --name /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64 --query 'Parameter.Value' --output text)
           echo AWS_REGION=$AWS_REGION >> $GITHUB_ENV
           echo SUBNET_ID=$SUBNET_ID >> $GITHUB_ENV
           echo SG_ID=$SG_ID >> $GITHUB_ENV
