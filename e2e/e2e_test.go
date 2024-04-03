@@ -92,6 +92,7 @@ func TestMain(m *testing.M) {
 	log.Printf("Created EC CA with arn %s", ecCaArn)
 
 	xaRole, xaRoleExists := os.LookupEnv("PLUGIN_CROSS_ACCOUNT_ROLE")
+	xaRoleExists = false
 	if xaRoleExists {
 		xaCfg = assumeRole(ctx, cfg, xaRole, region)
 
